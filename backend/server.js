@@ -1,39 +1,21 @@
-//const express = require('express)
 import express from 'express';
 import dotenv from "dotenv";
 import { connectDB } from './config/db.js'
-import Campaign from './models/campaign.model.js';
+
+import campaignRoutes from "./routes/campaign.route.js"
 
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5000
 
-//app.get("/campaigns",(req, res) => {
-//})
+app.use(express.json()); //allows us to accept JSON data in the req.body
 
-app.post("/campaigns",async (req, res) => {
-    const campaign = req.body; //user will send this data
-    
-    if(!campaign.name || !campaign.image || !campaign.goal) {
-        return res.status(400).json({ success:false, message: "Please Provide all necessary fields"});
-    }
-
-    const newCampaign = new Campaign(campaign)
-
-    try {
-        await newCampaign.save();
-        res.status(201).json({ success: true, data: newProduct});
-    } catch (error) {
-        console.error("Error Create Campaign", error.message);
-        res.status(500).json({ success: false, message: "Server Error"});
-    }
-});
+app.use("/api/campaigns", campaignRoutes);
 
 // Postman desktop application to test
 
-//console.log(process.env.MONGO_URI);
-
-app.listen(5000, () => {
+app.listen(PORT, () => {
     connectDB();
-    console.log('Server Started at http://localhost:5000');
-})
+    console.log('Server Started at http://localhost:'+ PORT);
+});
