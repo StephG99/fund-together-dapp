@@ -23,13 +23,14 @@ import {
 import { useCampaignStore } from '../store/campaign';
 import React from 'react'
 import { useState } from 'react';
+import { API_URL } from '../config';
 
 const CampaignCard = ({campaign}) => {
     const [updatedCampaign, setUpdatedCampaign] = useState(campaign)
     const textColor = useColorModeValue("gray.600", "gray.200");
     const bg = useColorModeValue("white", "gray.800");
 
-    const {deleteCampaign, updateCampaign} = useCampaignStore()
+    const {deleteCampaign, updateCampaign, fetchCampaigns} = useCampaignStore()
     const toast = useToast()
     const { isOpen, onOpen, onClose } = useDisclosure()
 
@@ -52,29 +53,59 @@ const CampaignCard = ({campaign}) => {
                 isClosable: true,
             })
         }
-    } 
-
-    const handleUpdateCampaign = async (campaignId, updatedCampaign) => {   
-        const {success, message} = await updateCampaign(campaignId, updatedCampaign);
-        onClose();
-        if(!success){
-            toast({
-                title: 'Error',
-                description: message,
-                status: 'error',
-                duration: 5000,
-                isClosable: true,
-            })
-        } else {
-            toast({
-                title: 'Success',
-                description: "Campaign updated successfully",
-                status: 'success',
-                duration: 5000,
-                isClosable: true,
-            })
-        }
     }
+    
+    
+
+    const handleUpdateCampaign = async (campaignId, updatedCampaign) => {
+        const formData = new FormData();
+        formData.append("campaignContract", updatedCampaign.campaignContract);
+        formData.append("description", updatedCampaign.description);
+        if (updatedCampaign.image) {
+            formData.append("image", updatedCampaign.image); // Add image only if it's updated
+        }
+    
+        try {
+            const res = await fetch(`${API_URL}/api/campaigns/${campaignId}`, {
+                method: "PUT",
+                body: formData,
+            });
+            const data = await res.json();
+            if (!data.success) {
+                toast({
+                    title: 'Error',
+                    description: data.message,
+                    status: 'error',
+                    duration: 5000,
+                    isClosable: true,
+                });
+            } else {
+                // Refresh and Close the modal after successful update
+                await fetchCampaigns();
+                onClose();
+
+                toast({
+                    title: 'Success',
+                    description: 'Campaign updated successfully',
+                    status: 'success',
+                    duration: 5000,
+                    isClosable: true,
+                });
+            }
+        } catch (error) {
+            console.error("Error updating campaign:", error.message);
+    
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 5000,
+                isClosable: true,
+            });
+        }
+    };
+    
+    
 
   return (
     <Box
@@ -92,7 +123,7 @@ const CampaignCard = ({campaign}) => {
                 {campaign.campaignContract}
             </Heading>
 
-            <Text fontweight='bold' fontSize="xl" color={textColor} mb={4}>
+            <Text fontWeight='bold' fontSize="xl" color={textColor} mb={4}>
                 {campaign.description}
             </Text>
 
@@ -111,24 +142,42 @@ const CampaignCard = ({campaign}) => {
                     <ModalCloseButton />
                     <ModalBody>
                         <VStack spacing={4}>
-                            <Input 
-                                placeholder="Campaign Contract Address" 
+                            <Input
+                                placeholder="Campaign Contract Address"
                                 name="campaignContract"
                                 value={updatedCampaign.campaignContract}
-                                onChange={(e) => setUpdatedCampaign({...updatedCampaign, campaignContract: e.target.value})}    
+                                onChange={(e) => setUpdatedCampaign({ ...updatedCampaign, campaignContract: e.target.value })}
                             />
-                            <Input 
-                                placeholder="Description" 
+                            <Input
+                                placeholder="Description"
                                 name="description"
                                 value={updatedCampaign.description}
-                                onChange={(e) => setUpdatedCampaign({...updatedCampaign, description: e.target.value})}
+                                onChange={(e) => setUpdatedCampaign({ ...updatedCampaign, description: e.target.value })}
                             />
-                            <Input 
-                                placeholder="Image URL"
-                                name='imageURL'
-                                value={updatedCampaign.imageURL}
-                                onChange={(e) => setUpdatedCampaign({...updatedCampaign, imageURL: e.target.value})}
-                            />
+                            <Box w="full" textAlign="center" mb={4}>
+                                <Input
+                                    type="file"
+                                    name="image"
+                                    accept="image/*"
+                                    onChange={(e) => setUpdatedCampaign({ ...updatedCampaign, image: e.target.files[0] })}
+                                    sx={{
+                                        "::file-selector-button": {
+                                            background: "blue.500",
+                                            color: "white",
+                                            padding: "0.3rem 0.6rem",
+                                            margin: "0.15rem",
+                                            marginLeft: "-2.5",
+                                            borderRadius: "md",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            fontWeight: "bold",
+                                            _hover: {
+                                                background: "blue.600",
+                                            },
+                                        },
+                                    }}
+                                />
+                            </Box>
                         </VStack>
                     </ModalBody>
                     <ModalFooter>

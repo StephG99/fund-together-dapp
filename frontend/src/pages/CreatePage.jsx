@@ -6,22 +6,18 @@ const CreatePage = () => {
   const [newCampaign, setNewCampaign] = useState({
     campaignContract: '',
     description: '',
-    imageURL: '',
+    imageURL: 'null',
   })
 
   const toast = useToast()
-
   const {createCampaign} = useCampaignStore()
   
   const handleAddCampaign = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/campaigns', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newCampaign), // Send the campaign data
-      });
+        body: formData, // Send FormData instead of JSON
+        });
   
       if (!response.ok) {
         const errorData = await response.json();
