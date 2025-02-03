@@ -1,4 +1,4 @@
-import {Box, Button, Container, Heading, Input, useColorModeValue, VStack } from "@chakra-ui/react"
+import {Box, Button, Container, Heading, Input, useColorModeValue, useToast, VStack } from "@chakra-ui/react"
 import { useState } from "react"
 import { useCampaignStore } from "../store/campaign"
 
@@ -8,6 +8,8 @@ const CreatePage = () => {
     description: '',
     imageURL: '',
   })
+
+  const toast = useToast()
 
   const {createCampaign} = useCampaignStore()
   
@@ -22,11 +24,21 @@ const CreatePage = () => {
       });
   
       if (!response.ok) {
-        throw new Error('Failed to create campaign');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create campaign');
       }
   
       const data = await response.json();
       console.log('Campaign created:', data);
+  
+      // Show success toast
+      toast({
+        title: 'Success',
+        description: 'Campaign created successfully.',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
   
       // Clear the form on success
       setNewCampaign({
@@ -36,8 +48,18 @@ const CreatePage = () => {
       });
     } catch (error) {
       console.error('Error:', error.message);
+  
+      // Show error toast
+      toast({
+        title: 'Error',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
     }
   };
+  
 
   return (
     <Container maxW={"container.sm"}>

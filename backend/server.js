@@ -15,7 +15,6 @@ app.use(express.json()); //allows us to accept JSON data in the req.body
 
 app.use("/api/campaigns", campaignRoutes);
 
-// Postman desktop application to test
 
 app.listen(PORT, () => {
     connectDB();

@@ -1,7 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 
-import { createCampaign, deleteCampaign, getCampaigns, updateCampaign } from '../controllers/product.controller.js';
+import { createCampaign, deleteCampaign, getCampaigns, updateCampaign } from '../controllers/campaign.controller.js';
 
 const router = express.Router();
 
