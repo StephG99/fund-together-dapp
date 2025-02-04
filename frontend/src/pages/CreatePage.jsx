@@ -6,7 +6,7 @@ const CreatePage = () => {
   const [newCampaign, setNewCampaign] = useState({
     campaignContract: '',
     description: '',
-    imageURL: 'null',
+    image: 'null',
   })
 
   const toast = useToast()
@@ -14,19 +14,26 @@ const CreatePage = () => {
   
   const handleAddCampaign = async () => {
     try {
+      // Create a FormData object and populate it with campaign data
+      const formData = new FormData();
+      formData.append("campaignContract", newCampaign.campaignContract);
+      formData.append("description", newCampaign.description);
+      formData.append("image", newCampaign.image);
+
+      // Make the POST request to the backend with FormData
       const response = await fetch('http://localhost:5000/api/campaigns', {
         method: 'POST',
         body: formData, // Send FormData instead of JSON
-        });
-  
+      });
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to create campaign');
       }
-  
+
       const data = await response.json();
       console.log('Campaign created:', data);
-  
+
       // Show success toast
       toast({
         title: 'Success',
@@ -35,16 +42,16 @@ const CreatePage = () => {
         duration: 5000,
         isClosable: true,
       });
-  
+
       // Clear the form on success
       setNewCampaign({
         campaignContract: '',
         description: '',
-        imageURL: '',
+        image: null,
       });
     } catch (error) {
       console.error('Error:', error.message);
-  
+
       // Show error toast
       toast({
         title: 'Error',
@@ -78,12 +85,30 @@ const CreatePage = () => {
                 value={newCampaign.description}
                 onChange={(e) => setNewCampaign({...newCampaign, description: e.target.value})}
               />
+               <Box w="full" textAlign="center">
               <Input
-                placeholder="Image URL"
-                name="imageURL"
-                value={newCampaign.imageURL}
-                onChange={(e) => setNewCampaign({...newCampaign, imageURL: e.target.value})}
+                type="file"
+                name="image"
+                accept="image/*" // Accept only images
+                onChange={(e) => setNewCampaign({ ...newCampaign, image: e.target.files[0] })}
+                sx={{
+                  "::file-selector-button": {
+                      background: "blue.500",
+                      color: "white",
+                      padding: "0.3rem 0.6rem",
+                      margin: "0.15rem",
+                      marginLeft: "-3.5",
+                      borderRadius: "md",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                      _hover: {
+                          background: "blue.600",
+                      },
+                  },
+              }}
               />
+            </Box>
 
               <Button colorScheme="blue" onClick={handleAddCampaign}>
                 Create Campaign
