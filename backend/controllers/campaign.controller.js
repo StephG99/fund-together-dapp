@@ -41,7 +41,6 @@ export const createCampaign = async (req, res) => {
     }
 };
 
-// Update a campaign
 export const updateCampaign = async (req, res) => {
     const { id } = req.params;
 
@@ -49,17 +48,17 @@ export const updateCampaign = async (req, res) => {
         return res.status(404).json({ success: false, message: "Invalid Campaign ID" });
     }
 
-    const { campaignContract, description } = req.body;
+    const { description } = req.body;
 
     try {
-        let updatedData = { campaignContract, description };
+        let updatedData = { description };
 
-        // If there's a new image file, upload it to Cloudinary
+        // Handle image update
         if (req.file) {
             const result = await cloudinary.uploader.upload(req.file.path, {
                 folder: "campaign-images",
             });
-            updatedData.imageURL = result.secure_url; // Update image URL
+            updatedData.imageURL = result.secure_url;
         }
 
         const updatedCampaign = await Campaign.findByIdAndUpdate(id, updatedData, { new: true });
@@ -69,6 +68,7 @@ export const updateCampaign = async (req, res) => {
         res.status(500).json({ success: false, message: "Server Error" });
     }
 };
+
 
 // Delete a campaign
 export const deleteCampaign = async (req, res) => {

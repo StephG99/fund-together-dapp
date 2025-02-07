@@ -14,10 +14,6 @@ const campaignSchema = new mongoose.Schema({
     imageURL: {
         type: String, // URL to the campaign's image (local or cloud storage)
     },
-    //metadataIPFSHash: {
-    //    type: String, // Optional: IPFS hash for metadata if decentralized
-    //    default: null,
-    //},
 }, {
     timestamps: true //createdAt, updatedAt
 }

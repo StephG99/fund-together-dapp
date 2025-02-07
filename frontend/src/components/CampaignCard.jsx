@@ -23,7 +23,7 @@ import {
 import { useCampaignStore } from '../store/campaign';
 import React from 'react'
 import { useState } from 'react';
-import { API_URL } from '../config';
+import { API_URL } from '../config/config';
 
 const CampaignCard = ({campaign}) => {
     const [updatedCampaign, setUpdatedCampaign] = useState(campaign)

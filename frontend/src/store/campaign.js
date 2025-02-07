@@ -1,5 +1,5 @@
 import {create} from "zustand";
-import { API_URL } from "../config";
+import { API_URL } from "../config/config";
 
 export const useCampaignStore = create((set) => ({
     campaigns: [],
