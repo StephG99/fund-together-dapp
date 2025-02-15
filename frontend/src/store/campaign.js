@@ -1,59 +1,65 @@
-import {create} from "zustand";
+import { create } from "zustand";
 import { API_URL } from "../config/config";
 
 export const useCampaignStore = create((set) => ({
-    campaigns: [],
-    setCampaigns: (campaigns) => set({campaigns}),
-    createCampaign: async (newCampaign) => {
-      if (!newCampaign.campaignContract || !newCampaign.description || !newCampaign.image) {
-          return { success: false, message: "Please fill out all fields" };
-      }
-  
-      const formData = new FormData();
-      formData.append("campaignContract", newCampaign.campaignContract);
-      formData.append("description", newCampaign.description);
-      formData.append("image", newCampaign.image);
-  
-      const res = await fetch("/api/campaigns", {
-          method: "POST",
-          body: formData,
-      });
-  
-      const data = await res.json();
-      set((state) => ({ campaigns: [...state.campaigns, data.data] }));
-      return { success: true, message: "Campaign created" };
+  campaigns: [],
+  setCampaigns: (campaigns) => set({ campaigns }),
+  createCampaign: async (newCampaign) => {
+    if (
+      !newCampaign.campaignContract ||
+      !newCampaign.description ||
+      !newCampaign.image
+    ) {
+      return { success: false, message: "Please fill out all fields" };
+    }
+
+    const formData = new FormData();
+    formData.append("campaignContract", newCampaign.campaignContract);
+    formData.append("description", newCampaign.description);
+    formData.append("image", newCampaign.image);
+
+    const res = await fetch("/api/campaigns", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    set((state) => ({ campaigns: [...state.campaigns, data.data] }));
+    return { success: true, message: "Campaign created" };
   },
 
-    // Fetch all campaigns
-    fetchCampaigns: async () => {
-        const res = await fetch(`${API_URL}/api/campaigns`); // Use API_URL
-        const data = await res.json();
-        // Update the state with the fetched campaigns
-        set({ campaigns: data.data });
+  // Fetch all campaigns
+  fetchCampaigns: async () => {
+    const res = await fetch(`${API_URL}/api/campaigns`); // Use API_URL
+    const data = await res.json();
+    // Update the state with the fetched campaigns
+    set({ campaigns: data.data });
   },
 
-    deleteCampaign: async (campaignId) => {
-        const res = await fetch(`${API_URL}/api/campaigns/${campaignId}`, {
-            method: 'DELETE',
-        });
+  deleteCampaign: async (campaignId) => {
+    const res = await fetch(`${API_URL}/api/campaigns/${campaignId}`, {
+      method: "DELETE",
+    });
 
-        const data = await res.json();
-        if(!data.success) {
-            return {success: false, message: data.message};
-        }
-        // Remove the deleted campaign from the state 
-        // update ui immediately so we dont need to refresh the page
-        set((state) => ({
-            campaigns: state.campaigns.filter((campaign) => campaign._id !== campaignId)
-        }));
-        return { success: true, message: data.message };
+    const data = await res.json();
+    if (!data.success) {
+      return { success: false, message: data.message };
+    }
+    // Remove the deleted campaign from the state
+    // update ui immediately so we dont need to refresh the page
+    set((state) => ({
+      campaigns: state.campaigns.filter(
+        (campaign) => campaign._id !== campaignId
+      ),
+    }));
+    return { success: true, message: data.message };
   },
 
   updateCampaign: async (campaignId, updatedCampaign) => {
     const res = await fetch(`${API_URL}/api/campaigns/${campaignId}`, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(updatedCampaign),
     });

@@ -1,7 +1,7 @@
 // src/config/constants.js
 
 export const FACTORY_CONTRACT_ADDRESS =
-  "0xbfeb6cbFff39d21A3eD510f5bBAfe3560431766D"; // Replace with your deployed address
+  "0xD27691901E6366dBD69272754390F170687818F4"; // Your deployed address
 export const FACTORY_CONTRACT_ABI = [
   { type: "constructor", inputs: [], stateMutability: "nonpayable" },
   {
@@ -100,6 +100,32 @@ export const FACTORY_CONTRACT_ABI = [
       { name: "creationTime", type: "uint256", internalType: "uint256" },
     ],
     stateMutability: "view",
+  },
+  {
+    type: "event",
+    name: "CampaignCreated",
+    inputs: [
+      {
+        name: "campaignAddress",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "owner",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      { name: "name", type: "string", indexed: false, internalType: "string" },
+      {
+        name: "creationTime",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
   },
 ];
 
