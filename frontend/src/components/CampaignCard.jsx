@@ -13,20 +13,19 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 const CampaignCard = ({ campaign }) => {
-  // campaign might have: { name, goal, totalFunds, imageURL, description, campaignContract, ... }
-  // 'goal' and 'totalFunds' are strings in ETH (e.g. "1.0") for the progress bar.
-
   const textColor = useColorModeValue("gray.600", "gray.200");
   const bg = useColorModeValue("white", "gray.800");
 
-  // Convert to numeric for progress
+  // Convert 'goal' and 'totalFunds' from string to number for progress
   const goalValue = campaign.goal ? parseFloat(campaign.goal) : 0;
   const totalValue = campaign.totalFunds ? parseFloat(campaign.totalFunds) : 0;
 
   let progressPct = 0;
   if (goalValue > 0) {
     progressPct = (totalValue / goalValue) * 100;
-    if (progressPct > 100) progressPct = 100;
+    if (progressPct > 100) {
+      progressPct = 100;
+    }
   }
 
   return (
@@ -52,8 +51,12 @@ const CampaignCard = ({ campaign }) => {
           {campaign.name || "Unnamed Campaign"}
         </Heading>
 
-        {/* Remove the Address display */}
-        {/* <Text>Address: {campaign.campaignContract}</Text> */}
+        {/* Campaign Status */}
+        {campaign.status && (
+          <Text fontWeight="bold" fontSize="sm" color={textColor} mb={2}>
+            Status: {campaign.status}
+          </Text>
+        )}
 
         {/* Goal and total raised */}
         <Text fontWeight="bold" fontSize="sm" color={textColor} mb={2}>

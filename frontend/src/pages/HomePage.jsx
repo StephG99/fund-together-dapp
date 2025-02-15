@@ -21,24 +21,21 @@ const HomePage = () => {
         if (!response.ok) {
           throw new Error("Failed to fetch campaigns from backend.");
         }
-        const data = await response.json();
-        let offChainCampaigns = data.data;
+        let offChainCampaigns = (await response.json()).data;
 
         // 2) Filter out any record that matches the factory address
-        offChainCampaigns = offChainCampaigns.filter((campaign) => {
+        offChainCampaigns = offChainCampaigns.filter((c) => {
           if (
-            campaign.campaignContract?.toLowerCase() ===
+            c.campaignContract?.toLowerCase() ===
             FACTORY_CONTRACT_ADDRESS.toLowerCase()
           ) {
-            console.warn(
-              "Skipping factory address:",
-              campaign.campaignContract
-            );
+            console.warn("Skipping factory address:", c.campaignContract);
             return false;
           }
           return true;
         });
 
+        // If no MetaMask, just return
         if (!window.ethereum) {
           console.error("MetaMask not available in window.ethereum");
           return;
@@ -46,7 +43,7 @@ const HomePage = () => {
 
         const provider = new ethers.BrowserProvider(window.ethereum);
 
-        // 3) Fetch on-chain data for each campaign (name, goal, balance, etc.)
+        // 3) For each campaign, fetch on-chain data: name, goal, balance, status, etc.
         const enrichedCampaigns = await Promise.all(
           offChainCampaigns.map(async (campaign) => {
             try {
@@ -56,35 +53,50 @@ const HomePage = () => {
                 provider
               );
 
-              console.log(
-                "Calling contract.name() at address:",
-                campaign.campaignContract
-              );
+              // name()
               const contractName = await contract.name();
 
-              // Get the current contract balance (in wei => ETH)
+              // getContractBalance() => parse from wei
               const balanceWei = await contract.getContractBalance();
               const balanceEth = ethers.formatEther(balanceWei);
 
-              // Get the goal (also stored in wei => ETH)
+              // goal() => parse from wei
               const goalWei = await contract.goal();
               const goalEth = ethers.formatEther(goalWei);
+
+              // state() => numeric 0=Active, 1=Successful, 2=Failed
+              const cState = await contract.state();
+              let statusStr = "Unknown";
+              switch (Number(cState)) {
+                case 0:
+                  statusStr = "Active";
+                  break;
+                case 1:
+                  statusStr = "Successful";
+                  break;
+                case 2:
+                  statusStr = "Failed";
+                  break;
+                default:
+                  statusStr = "Unknown";
+              }
 
               return {
                 ...campaign,
                 name: contractName,
-                totalFunds: balanceEth, // used in CampaignCard
-                goal: goalEth, // now your card can show the correct goal
+                totalFunds: balanceEth,
+                goal: goalEth,
+                status: statusStr, // e.g. "Active", "Successful", or "Failed"
               };
             } catch (err) {
               console.error("Error reading contract data:", err);
-
               // If anything fails, fallback
               return {
                 ...campaign,
                 name: "Unknown Campaign",
                 totalFunds: "0",
                 goal: "0",
+                status: "Unknown",
               };
             }
           })

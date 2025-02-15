@@ -29,25 +29,30 @@ import TierCard from "../components/TierCard";
 const CampaignDetails = () => {
   const { address } = useParams();
 
-  const [currentUser, setCurrentUser] = useState("");
-  const [campaign, setCampaign] = useState(null);
+  // Basic info from contract
   const [name, setName] = useState("");
   const [owner, setOwner] = useState("");
   const [paused, setPaused] = useState(false);
-  const [tiers, setTiers] = useState([]);
   const [goal, setGoal] = useState("0.0");
   const [balance, setBalance] = useState("0.0");
+  const [tiers, setTiers] = useState([]);
+  const [campaign, setCampaign] = useState(null); // Off-chain data
   const [loading, setLoading] = useState(true);
 
-  const [isEditing, setIsEditing] = useState(false);
+  // Additional fields
+  const [deadline, setDeadline] = useState("0");
+  const [status, setStatus] = useState(0); // 0=Active, 1=Successful, 2=Failed
 
+  // UI state
+  const [currentUser, setCurrentUser] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [newTierName, setNewTierName] = useState("");
   const [newTierAmount, setNewTierAmount] = useState("");
 
   const toast = useToast();
 
-  // Function to re-fetch tiers & balance from the contract
+  // Helper function to re-fetch tiers + balance
   const fetchTiers = async () => {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -95,15 +100,27 @@ const CampaignDetails = () => {
           CAMPAIGN_CONTRACT_ABI,
           provider
         );
-        const [cName, cOwner, cIsPaused, cTiers, cGoal, cBalance] =
-          await Promise.all([
-            contract.name(),
-            contract.owner(),
-            contract.paused(),
-            contract.getTiers(),
-            contract.goal(),
-            contract.getContractBalance(),
-          ]);
+
+        // Retrieve more fields: deadline, campaign state
+        const [
+          cName,
+          cOwner,
+          cIsPaused,
+          cTiers,
+          cGoal,
+          cBalance,
+          cDeadline,
+          cState,
+        ] = await Promise.all([
+          contract.name(),
+          contract.owner(),
+          contract.paused(),
+          contract.getTiers(),
+          contract.goal(),
+          contract.getContractBalance(),
+          contract.deadline(), // number
+          contract.state(), // enum stored as uint8
+        ]);
 
         setName(cName);
         setOwner(cOwner.toLowerCase());
@@ -112,6 +129,8 @@ const CampaignDetails = () => {
 
         setGoal(ethers.formatEther(cGoal));
         setBalance(ethers.formatEther(cBalance));
+        setDeadline(cDeadline.toString()); // store as string for now
+        setStatus(Number(cState)); // 0=Active, 1=Successful, 2=Failed
       } catch (err) {
         console.error("Error loading campaign details:", err.message);
         toast({
@@ -129,7 +148,36 @@ const CampaignDetails = () => {
     loadCampaign();
   }, [address, toast]);
 
-  // Toggle pause/unpause
+  // Parse the numeric status into a human-readable string
+  const parseStatus = (num) => {
+    switch (num) {
+      case 0:
+        return "Active";
+      case 1:
+        return "Successful";
+      case 2:
+        return "Failed";
+      default:
+        return "Unknown";
+    }
+  };
+
+  // Convert the deadline (seconds) to a local date/time
+  const deadlineDate = new Date(Number(deadline) * 1000).toLocaleString();
+
+  // Calculate progress for progress bar
+  const goalValue = parseFloat(goal) || 0;
+  const balanceValue = parseFloat(balance) || 0;
+  let progressPercent = 0;
+  if (goalValue > 0) {
+    progressPercent = (balanceValue / goalValue) * 100;
+    if (progressPercent > 100) progressPercent = 100;
+  }
+
+  // Check if user is owner
+  const isOwner = currentUser === owner;
+
+  // Toggle campaign pause/unpause
   const handleTogglePause = async () => {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -163,7 +211,7 @@ const CampaignDetails = () => {
     }
   };
 
-  // Add Tier inside a modal
+  // Add Tier from modal
   const handleAddTier = async () => {
     if (!newTierName || !newTierAmount) {
       toast({
@@ -188,10 +236,7 @@ const CampaignDetails = () => {
       const tx = await contract.addTier(newTierName, tierAmountWei);
       await tx.wait();
 
-      // Refresh tiers
       await fetchTiers();
-
-      // Clear fields and close modal
       setNewTierName("");
       setNewTierAmount("");
       onClose();
@@ -215,7 +260,44 @@ const CampaignDetails = () => {
     }
   };
 
-  // If loading or not found
+  // Withdraw if campaign is successful
+  const handleWithdraw = async () => {
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(
+        address,
+        CAMPAIGN_CONTRACT_ABI,
+        signer
+      );
+
+      const tx = await contract.withdraw();
+      await tx.wait();
+
+      // Refresh balance after withdrawal
+      const cBalance = await contract.getContractBalance();
+      setBalance(ethers.formatEther(cBalance));
+
+      toast({
+        title: "Success",
+        description: "Funds withdrawn successfully!",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+    } catch (err) {
+      console.error("Error withdrawing funds:", err.message);
+      toast({
+        title: "Error",
+        description: err.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // If still loading or no campaign
   if (loading) {
     return (
       <Container maxW="container.md" mt={10}>
@@ -235,21 +317,10 @@ const CampaignDetails = () => {
     );
   }
 
-  // Calculate progress
-  const goalValue = parseFloat(goal) || 0;
-  const balanceValue = parseFloat(balance) || 0;
-  let progressPercent = 0;
-  if (goalValue > 0) {
-    progressPercent = (balanceValue / goalValue) * 100;
-    if (progressPercent > 100) progressPercent = 100;
-  }
-
-  const isOwner = currentUser === owner;
-
   return (
     <Container maxW="container.md" mt={6}>
       <VStack align="stretch" spacing={6}>
-        {/* Campaign Title & Edit Mode Button */}
+        {/* Title & Edit mode toggle */}
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Heading>{name}</Heading>
           {isOwner && (
@@ -259,9 +330,10 @@ const CampaignDetails = () => {
           )}
         </Box>
 
-        {/* Show the contract address in bold */}
+        {/* Contract Address */}
         <Text fontWeight="bold">Contract Address: {address}</Text>
 
+        {/* Off-chain image */}
         {campaign.imageURL && (
           <Image
             src={campaign.imageURL}
@@ -271,11 +343,17 @@ const CampaignDetails = () => {
           />
         )}
 
-        {/* Show "Description" in bold, then the actual text */}
+        {/* Description */}
         <Text fontWeight="bold">Description</Text>
         <Text>{campaign.description}</Text>
 
-        {/* PROGRESS BAR */}
+        {/* Status & Deadline */}
+        <Box>
+          <Text fontWeight="bold">Status: {parseStatus(status)}</Text>
+          <Text fontWeight="bold">Deadline: {deadlineDate}</Text>
+        </Box>
+
+        {/* Progress Bar */}
         <Box>
           <Heading size="sm" mb={2}>
             Progress
@@ -294,12 +372,23 @@ const CampaignDetails = () => {
           </Text>
         </Box>
 
+        {/* Owner */}
         <Text fontWeight="bold">Owner: {owner}</Text>
 
-        {/* Pause/Unpause only if editing */}
+        {/* Pause/Unpause (only if editing) */}
         {isOwner && isEditing && (
           <Button colorScheme="red" onClick={handleTogglePause}>
             {paused ? "Unpause Campaign" : "Pause Campaign"}
+          </Button>
+        )}
+
+        {/* 
+          If status is Successful (1) & user is owner, show withdraw button 
+          (We assume the campaign uses 'withdraw()' to claim funds).
+        */}
+        {isOwner && status === 1 && (
+          <Button colorScheme="green" onClick={handleWithdraw}>
+            Withdraw Funds
           </Button>
         )}
 
