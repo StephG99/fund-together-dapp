@@ -37,8 +37,38 @@ const Navbar = () => {
   };
 
   useEffect(() => {
-    console.log("Wallet Address Updated:", walletAddress);
-  }, [walletAddress]);
+    // On component mount, see if user is already connected
+    const checkConnection = async () => {
+      if (window.ethereum) {
+        const accounts = await window.ethereum.request({
+          method: "eth_accounts",
+        });
+        if (accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+        }
+      }
+    };
+
+    checkConnection();
+
+    // Subscribe to account changes:
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", (accounts) => {
+        if (accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+        } else {
+          setWalletAddress("");
+        }
+      });
+    }
+
+    // Cleanup listener on unmount:
+    return () => {
+      if (window.ethereum && window.ethereum.removeListener) {
+        window.ethereum.removeListener("accountsChanged", () => {});
+      }
+    };
+  }, []);
 
   return (
     <Container maxW={"1140px"} px={4}>
@@ -52,7 +82,7 @@ const Navbar = () => {
         }}
       >
         <Flex alignItems={"center"}>
-          <Image src={logo} alt="Logo" boxSize="40px" mr={2} /> {/* Logo */}
+          <Image src={logo} alt="Logo" boxSize="40px" mr={2} />
           <Text
             fontSize={{ base: "22", sm: "28" }}
             fontWeight={"bold"}
@@ -65,24 +95,19 @@ const Navbar = () => {
           </Text>
         </Flex>
 
-        {/* Navigation and Controls */}
         <HStack spacing={2} alignItems={"center"}>
-          {/* Home Page Button */}
           <Link to="/">
             <Button>Home</Button>
           </Link>
 
-          {/* Dashboard Button */}
           <Link to="/dashboard">
             <Button colorScheme="teal">Dashboard</Button>
           </Link>
 
-          {/* Create Campaign Button */}
           <Link to="/create">
             <Button leftIcon={<PlusSquareIcon fontSize={20} />}>Create</Button>
           </Link>
 
-          {/* Toggle Light/Dark Mode */}
           <Button onClick={toggleColorMode}>
             {colorMode === "light" ? <IoMoon /> : <LuSun />}
           </Button>

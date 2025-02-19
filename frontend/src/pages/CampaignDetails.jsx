@@ -52,6 +52,56 @@ const CampaignDetails = () => {
 
   const toast = useToast();
 
+  // Add parseStatus helper function
+  const parseStatus = (s) => {
+    switch (s) {
+      case 0:
+        return "Active";
+      case 1:
+        return "Successful";
+      case 2:
+        return "Failed";
+      default:
+        return "Unknown";
+    }
+  };
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      if (window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await provider.listAccounts();
+        if (accounts.length > 0) {
+          setCurrentUser(accounts[0].address.toLowerCase());
+        }
+      }
+    };
+
+    fetchCurrentUser();
+
+    // SUBSCRIBE to account changes:
+    if (window.ethereum) {
+      const handleAccountsChanged = (accounts) => {
+        if (accounts.length > 0) {
+          setCurrentUser(accounts[0].toLowerCase());
+        } else {
+          setCurrentUser("");
+        }
+      };
+
+      window.ethereum.on("accountsChanged", handleAccountsChanged);
+
+      // Cleanup on unmount:
+      return () => {
+        if (window.ethereum && window.ethereum.removeListener) {
+          window.ethereum.removeListener(
+            "accountsChanged",
+            handleAccountsChanged
+          );
+        }
+      };
+    }
+  }, []);
   // The user is owner if addresses match
   const isOwner = currentUser && owner && currentUser === owner;
 
@@ -136,7 +186,7 @@ const CampaignDetails = () => {
           contract.goal(),
           contract.getContractBalance(),
           contract.deadline(),
-          contract.state(), // 0=Active,1=Successful,2=Failed
+          contract.getCampaignStatus(), // Use dynamic status calculation here
         ]);
 
         setName(cName);
@@ -163,20 +213,6 @@ const CampaignDetails = () => {
 
     loadCampaign();
   }, [address, toast]);
-
-  // parse status
-  const parseStatus = (s) => {
-    switch (s) {
-      case 0:
-        return "Active";
-      case 1:
-        return "Successful";
-      case 2:
-        return "Failed";
-      default:
-        return "Unknown";
-    }
-  };
 
   // compute displayed status (including paused if Active)
   const parsed = parseStatus(status);
@@ -384,13 +420,7 @@ const CampaignDetails = () => {
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Heading>{name}</Heading>
           <Box>
-            {/* If no wallet, show "Connect Wallet" */}
-            {!currentUser && (
-              <Button mr={3} colorScheme="gray" onClick={handleConnectWallet}>
-                Connect Wallet
-              </Button>
-            )}
-            {/* If we have an owner match, show "Edit" */}
+            {/* REMOVED the "Connect Wallet" button entirely! */}
             {isOwner && (
               <Button
                 colorScheme="blue"
