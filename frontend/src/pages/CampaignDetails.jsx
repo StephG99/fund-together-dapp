@@ -43,6 +43,9 @@ const CampaignDetails = () => {
   const [deadline, setDeadline] = useState("0");
   const [status, setStatus] = useState(0); // 0=Active,1=Successful,2=Failed
 
+  // State to track whether current user has contributed
+  const [hasContributed, setHasContributed] = useState(false);
+
   // UI state
   const [currentUser, setCurrentUser] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -52,7 +55,7 @@ const CampaignDetails = () => {
 
   const toast = useToast();
 
-  // Add parseStatus helper function
+  // Helper to parse numeric state into string
   const parseStatus = (s) => {
     switch (s) {
       case 0:
@@ -79,7 +82,7 @@ const CampaignDetails = () => {
 
     fetchCurrentUser();
 
-    // SUBSCRIBE to account changes:
+    // Subscribe to account changes
     if (window.ethereum) {
       const handleAccountsChanged = (accounts) => {
         if (accounts.length > 0) {
@@ -88,10 +91,9 @@ const CampaignDetails = () => {
           setCurrentUser("");
         }
       };
-
       window.ethereum.on("accountsChanged", handleAccountsChanged);
 
-      // Cleanup on unmount:
+      // Cleanup on unmount
       return () => {
         if (window.ethereum && window.ethereum.removeListener) {
           window.ethereum.removeListener(
@@ -102,7 +104,7 @@ const CampaignDetails = () => {
       };
     }
   }, []);
-  // The user is owner if addresses match
+
   const isOwner = currentUser && owner && currentUser === owner;
 
   // Helper to connect the wallet on demand
@@ -124,7 +126,7 @@ const CampaignDetails = () => {
     }
   };
 
-  // fetchTiers => re-fetch tiers & balance from read-only provider
+  // Re-fetch tiers & balance
   const fetchTiers = async () => {
     try {
       if (!window.ethereum) return;
@@ -150,7 +152,7 @@ const CampaignDetails = () => {
       try {
         setLoading(true);
 
-        // Off-chain data
+        // Off-chain data from your Node/Express backend
         const res = await fetch(
           `http://localhost:5000/api/campaigns/addr/${address}`
         );
@@ -186,7 +188,7 @@ const CampaignDetails = () => {
           contract.goal(),
           contract.getContractBalance(),
           contract.deadline(),
-          contract.getCampaignStatus(), // Use dynamic status calculation here
+          contract.getCampaignStatus(), // dynamic state
         ]);
 
         setName(cName);
@@ -214,13 +216,48 @@ const CampaignDetails = () => {
     loadCampaign();
   }, [address, toast]);
 
-  // compute displayed status (including paused if Active)
+  // After loading tiers or status, check if user contributed
+  useEffect(() => {
+    if (!currentUser || tiers.length === 0) return;
+
+    const checkContribution = async () => {
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(
+          address,
+          CAMPAIGN_CONTRACT_ABI,
+          provider
+        );
+
+        let contributed = false;
+        // Check each tier to see if user contributed
+        for (let i = 0; i < tiers.length; i++) {
+          const didContribute = await contract.hasContributedTier(
+            currentUser,
+            i
+          );
+          if (didContribute) {
+            contributed = true;
+            break;
+          }
+        }
+        setHasContributed(contributed);
+      } catch (err) {
+        console.error("Error checking user contribution:", err.message);
+      }
+    };
+
+    checkContribution();
+  }, [currentUser, tiers, address]);
+
+  // Convert campaign status to a display-friendly label
   const parsed = parseStatus(status);
   const displayStatus = paused && status === 0 ? `${parsed} (Paused)` : parsed;
 
-  // convert deadline => date
+  // Convert deadline => date
   const deadlineDate = new Date(Number(deadline) * 1000).toLocaleString();
-  // progress
+
+  // Progress bar
   const gVal = parseFloat(goal) || 0;
   const bVal = parseFloat(balance) || 0;
   let progressPct = 0;
@@ -238,7 +275,7 @@ const CampaignDetails = () => {
           setCurrentUser(wallet.toLowerCase());
         }
       } catch (err) {
-        throw err; // handle in caller
+        throw err;
       }
     }
   };
@@ -361,6 +398,7 @@ const CampaignDetails = () => {
         });
         return;
       }
+
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(
@@ -394,6 +432,55 @@ const CampaignDetails = () => {
     }
   };
 
+  // Refund for contributors when campaign is Failed
+  const handleRefund = async () => {
+    try {
+      await ensureWallet();
+      if (!currentUser) {
+        toast({
+          title: "Connect Wallet",
+          description: "Please connect your wallet first.",
+          status: "info",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(
+        address,
+        CAMPAIGN_CONTRACT_ABI,
+        signer
+      );
+
+      const tx = await contract.refund();
+      await tx.wait();
+
+      // Refresh local balance & remove contributor status
+      await fetchTiers();
+      setHasContributed(false);
+
+      toast({
+        title: "Success",
+        description: "Refund successful.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+    } catch (err) {
+      console.error("Error claiming refund:", err.message);
+      toast({
+        title: "Error",
+        description: err.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Container maxW="container.md" mt={10}>
@@ -403,6 +490,7 @@ const CampaignDetails = () => {
       </Container>
     );
   }
+
   if (!campaign) {
     return (
       <Container maxW="container.md" mt={10}>
@@ -420,7 +508,9 @@ const CampaignDetails = () => {
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Heading>{name}</Heading>
           <Box>
-            {/* REMOVED the "Connect Wallet" button entirely! */}
+            {/* If you still want Connect Wallet explicitly, uncomment:
+            <Button onClick={handleConnectWallet}>Connect Wallet</Button>
+            */}
             {isOwner && (
               <Button
                 colorScheme="blue"
@@ -478,10 +568,17 @@ const CampaignDetails = () => {
           </Button>
         )}
 
-        {/* If status=Successful => withdraw */}
+        {/* If campaign is Successful => show Withdraw button for the owner */}
         {isOwner && status === 1 && (
           <Button colorScheme="green" onClick={handleWithdraw}>
             Withdraw Funds
+          </Button>
+        )}
+
+        {/* If campaign is Failed => show Refund button for contributors only */}
+        {!isOwner && status === 2 && hasContributed && (
+          <Button colorScheme="red" onClick={handleRefund}>
+            Claim Refund
           </Button>
         )}
 
