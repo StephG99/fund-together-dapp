@@ -1,7 +1,8 @@
 // src/config/constants.js
 
 export const FACTORY_CONTRACT_ADDRESS =
-  "0xD27691901E6366dBD69272754390F170687818F4"; // Your deployed address
+  "0xA6886D15b04a4025839c39Edd4c8bEe7A6F3E4AD"; // Your deployed address
+
 export const FACTORY_CONTRACT_ABI = [
   { type: "constructor", inputs: [], stateMutability: "nonpayable" },
   {
@@ -22,7 +23,7 @@ export const FACTORY_CONTRACT_ABI = [
     inputs: [
       { name: "_name", type: "string", internalType: "string" },
       { name: "_goal", type: "uint256", internalType: "uint256" },
-      { name: "_durationInDays", type: "uint32", internalType: "uint32" },
+      { name: "_deadlineTimestamp", type: "uint256", internalType: "uint256" },
     ],
     outputs: [],
     stateMutability: "nonpayable",
@@ -118,12 +119,6 @@ export const FACTORY_CONTRACT_ABI = [
         internalType: "address",
       },
       { name: "name", type: "string", indexed: false, internalType: "string" },
-      {
-        name: "creationTime",
-        type: "uint256",
-        indexed: false,
-        internalType: "uint256",
-      },
     ],
     anonymous: false,
   },
@@ -136,7 +131,7 @@ export const CAMPAIGN_CONTRACT_ABI = [
       { name: "_owner", type: "address", internalType: "address" },
       { name: "_name", type: "string", internalType: "string" },
       { name: "_goal", type: "uint256", internalType: "uint256" },
-      { name: "_durationInDays", type: "uint256", internalType: "uint256" },
+      { name: "_deadlineTimestamp", type: "uint256", internalType: "uint256" },
     ],
     stateMutability: "nonpayable",
   },
@@ -176,7 +171,13 @@ export const CAMPAIGN_CONTRACT_ABI = [
   {
     type: "function",
     name: "extendDeadline",
-    inputs: [{ name: "_daysToAdd", type: "uint256", internalType: "uint256" }],
+    inputs: [
+      {
+        name: "_newDeadlineTimestamp",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
     outputs: [],
     stateMutability: "nonpayable",
   },
@@ -197,6 +198,13 @@ export const CAMPAIGN_CONTRACT_ABI = [
     type: "function",
     name: "getContractBalance",
     inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getContributionOf",
+    inputs: [{ name: "_backer", type: "address", internalType: "address" }],
     outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
     stateMutability: "view",
   },

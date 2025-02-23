@@ -38,6 +38,8 @@ const CampaignDetails = () => {
   const [tiers, setTiers] = useState([]);
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Right under other useState calls:
+  const [userContribution, setUserContribution] = useState("0.0");
 
   // Additional fields
   const [deadline, setDeadline] = useState("0");
@@ -249,6 +251,29 @@ const CampaignDetails = () => {
 
     checkContribution();
   }, [currentUser, tiers, address]);
+
+  //Fetch the user's total contribution if they’re connected
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchUserContribution = async () => {
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(
+          address,
+          CAMPAIGN_CONTRACT_ABI,
+          provider
+        );
+
+        const contributionWei = await contract.getContributionOf(currentUser);
+        setUserContribution(ethers.formatEther(contributionWei));
+      } catch (err) {
+        console.error("Error fetching user contribution:", err);
+      }
+    };
+
+    fetchUserContribution();
+  }, [currentUser, address]);
 
   // Convert campaign status to a display-friendly label
   const parsed = parseStatus(status);
@@ -580,6 +605,12 @@ const CampaignDetails = () => {
           <Button colorScheme="red" onClick={handleRefund}>
             Claim Refund
           </Button>
+        )}
+
+        {currentUser && parseFloat(userContribution) > 0 && (
+          <Text fontWeight="bold">
+            Your Contribution: {userContribution} ETH
+          </Text>
         )}
 
         <Box display="flex" alignItems="center" justifyContent="space-between">

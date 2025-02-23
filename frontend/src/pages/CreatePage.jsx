@@ -10,11 +10,12 @@ import {
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { createCampaignOnChain } from "../store/web3";
+
 const CreatePage = () => {
   const [newCampaign, setNewCampaign] = useState({
     name: "",
     goal: "",
-    duration: "",
+    deadline: "", // Will store date/time in a format suitable for <input type="datetime-local">
     description: "",
     image: null,
   });
@@ -26,22 +27,27 @@ const CreatePage = () => {
     try {
       setLoading(true);
 
-      // Parse duration as integer
-      const durationInDays = parseInt(newCampaign.duration, 10);
-      if (isNaN(durationInDays) || durationInDays <= 0) {
-        throw new Error("Please enter a valid duration in days.");
+      // Parse the user's chosen date/time into a Unix timestamp in seconds
+      const chosenDate = new Date(newCampaign.deadline);
+      const deadlineTimestamp = Math.floor(chosenDate.getTime() / 1000);
+
+      // Optional: Validate if deadline is in the future
+      const now = Math.floor(Date.now() / 1000);
+      if (deadlineTimestamp <= now) {
+        throw new Error("Please pick a future date/time for the deadline.");
       }
 
-      // Call your contract creation function
+      // Call your contract creation function with the correct parameters
+      // (Campaign Name, Goal in ETH, Deadline Timestamp in seconds)
       const campaignContract = await createCampaignOnChain(
         newCampaign.name,
         newCampaign.goal,
-        durationInDays
+        deadlineTimestamp
       );
 
       console.log("Deployed campaign on-chain at:", campaignContract);
 
-      // Upload metadata to the backend
+      // Upload metadata (description, image, etc.) to your backend
       const formData = new FormData();
       formData.append("campaignContract", campaignContract);
       formData.append("description", newCampaign.description);
@@ -75,14 +81,12 @@ const CreatePage = () => {
       setNewCampaign({
         name: "",
         goal: "",
-        duration: "",
+        deadline: "",
         description: "",
         image: null,
       });
     } catch (error) {
       console.error("Error creating campaign:", error.message);
-
-      // Error toast
       toast({
         title: "Error",
         description: error.message,
@@ -119,6 +123,7 @@ const CreatePage = () => {
               }
               required
             />
+
             <Input
               placeholder="Goal (ETH)"
               name="goal"
@@ -129,16 +134,19 @@ const CreatePage = () => {
               }
               required
             />
+
+            {/* Replace the old "Duration (Days)" with a date/time input */}
             <Input
-              placeholder="Duration (Days)"
-              name="duration"
-              type="number"
-              value={newCampaign.duration}
+              placeholder="Deadline"
+              name="deadline"
+              type="datetime-local" // <-- key HTML attribute
+              value={newCampaign.deadline}
               onChange={(e) =>
-                setNewCampaign({ ...newCampaign, duration: e.target.value })
+                setNewCampaign({ ...newCampaign, deadline: e.target.value })
               }
               required
             />
+
             <Input
               placeholder="Description"
               name="description"
@@ -148,6 +156,7 @@ const CreatePage = () => {
               }
               required
             />
+
             <Box w="full" textAlign="center">
               <Input
                 type="file"
