@@ -99,11 +99,11 @@ const Navbar = () => {
           <Link to="/">
             <Button>Home</Button>
           </Link>
-
+          {/*
           <Link to="/dashboard">
             <Button colorScheme="teal">Dashboard</Button>
           </Link>
-
+          */}
           <Link to="/create">
             <Button leftIcon={<PlusSquareIcon fontSize={20} />}>Create</Button>
           </Link>
