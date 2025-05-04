@@ -8,38 +8,45 @@ import {
   useColorModeValue,
   useToast,
   VStack,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { createCampaignOnChain } from "../store/web3";
 
 const CreatePage = () => {
   const [newCampaign, setNewCampaign] = useState({
     name: "",
     goal: "",
-    deadline: "", // Will store date/time in a format suitable for <input type="datetime-local">
+    deadline: "",
     description: "",
     image: null,
   });
 
   const [loading, setLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newCampaignId, setNewCampaignId] = useState(null);
+  const cancelRef = useRef();
+  const navigate = useNavigate();
   const toast = useToast();
 
   const handleAddCampaign = async () => {
     try {
       setLoading(true);
 
-      // Parse the user's chosen date/time into a Unix timestamp in seconds
       const chosenDate = new Date(newCampaign.deadline);
       const deadlineTimestamp = Math.floor(chosenDate.getTime() / 1000);
-
-      // Optional: Validate if deadline is in the future
       const now = Math.floor(Date.now() / 1000);
+
       if (deadlineTimestamp <= now) {
         throw new Error("Please pick a future date/time for the deadline.");
       }
 
-      // Call your contract creation function with the correct parameters
-      // (Campaign Name, Goal in ETH, Deadline Timestamp in seconds)
       const campaignContract = await createCampaignOnChain(
         newCampaign.name,
         newCampaign.goal,
@@ -48,7 +55,6 @@ const CreatePage = () => {
 
       console.log("Deployed campaign on-chain at:", campaignContract);
 
-      // Upload metadata (description, image, etc.) to your backend
       const formData = new FormData();
       formData.append("campaignContract", campaignContract);
       formData.append("description", newCampaign.description);
@@ -69,7 +75,6 @@ const CreatePage = () => {
       const data = await response.json();
       console.log("Campaign created (off-chain):", data);
 
-      // Success toast
       toast({
         title: "Success",
         description: "Campaign created successfully!",
@@ -77,6 +82,12 @@ const CreatePage = () => {
         duration: 5000,
         isClosable: true,
       });
+
+      // Store ID or address to navigate later
+      setNewCampaignId(data._id || campaignContract); // adjust depending on backend
+
+      // Show navigation modal
+      setIsModalOpen(true);
 
       // Reset the form
       setNewCampaign({
@@ -136,11 +147,10 @@ const CreatePage = () => {
               required
             />
 
-            {/* Replace the old "Duration (Days)" with a date/time input */}
             <Input
               placeholder="Deadline"
               name="deadline"
-              type="datetime-local" // <-- key HTML attribute
+              type="datetime-local"
               value={newCampaign.deadline}
               onChange={(e) =>
                 setNewCampaign({ ...newCampaign, deadline: e.target.value })
@@ -155,8 +165,8 @@ const CreatePage = () => {
               onChange={(e) =>
                 setNewCampaign({ ...newCampaign, description: e.target.value })
               }
-              rows={4} // Adjust this to control the default visible lines
-              resize="vertical" // Allow manual vertical resizing
+              rows={4}
+              resize="vertical"
               required
             />
 
@@ -202,6 +212,39 @@ const CreatePage = () => {
           </VStack>
         </Box>
       </VStack>
+
+      {/* Modal */}
+      <AlertDialog
+        isOpen={isModalOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setIsModalOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Campaign Created
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Your campaign was created successfully. Where would you like to go
+              next?
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={() => navigate("/")}>
+                Go to Home
+              </Button>
+              <Button
+                colorScheme="blue"
+                onClick={() => navigate(`/campaign/${newCampaignId}`)}
+                ml={3}
+              >
+                View Campaign
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Container>
   );
 };
