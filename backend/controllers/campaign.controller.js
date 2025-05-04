@@ -27,13 +27,13 @@ export const createCampaign = async (req, res) => {
   try {
     // Upload image to Cloudinary
     const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "campaign-images", // Optional folder name in Cloudinary
+      folder: "campaign-images",
     });
 
     const newCampaign = new Campaign({
       campaignContract,
       description,
-      imageURL: result.secure_url, // Save the image URL from Cloudinary
+      imageURL: result.secure_url,
     });
 
     await newCampaign.save();

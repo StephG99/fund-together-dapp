@@ -10,6 +10,7 @@ import {
 import { ethers } from "ethers";
 import { connectWallet } from "../store/web3";
 import { CAMPAIGN_CONTRACT_ABI } from "../config/constants";
+import { parseEthersError } from "../utils/parseEthersError";
 
 /**
  * Props:
@@ -64,7 +65,7 @@ const TierCard = ({
       console.error("Error contributing to tier:", err);
       toast({
         title: "Error",
-        description: err.message,
+        description: parseEthersError(err.message),
         status: "error",
         duration: 5000,
         isClosable: true,

@@ -4,6 +4,7 @@ import {
   Container,
   Heading,
   Input,
+  Textarea,
   useColorModeValue,
   useToast,
   VStack,
@@ -147,13 +148,15 @@ const CreatePage = () => {
               required
             />
 
-            <Input
+            <Textarea
               placeholder="Description"
               name="description"
               value={newCampaign.description}
               onChange={(e) =>
                 setNewCampaign({ ...newCampaign, description: e.target.value })
               }
+              rows={4} // Adjust this to control the default visible lines
+              resize="vertical" // Allow manual vertical resizing
               required
             />
 

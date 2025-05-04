@@ -25,6 +25,7 @@ import { ethers } from "ethers";
 import { connectWallet } from "../store/web3";
 import { CAMPAIGN_CONTRACT_ABI } from "../config/constants";
 import TierCard from "../components/TierCard";
+import { parseEthersError } from "../utils/parseEthersError";
 
 const CampaignDetails = () => {
   const { address } = useParams();
@@ -120,7 +121,7 @@ const CampaignDetails = () => {
       console.error("Error connecting wallet:", err.message);
       toast({
         title: "Error",
-        description: err.message,
+        description: parseEthersError(err.message),
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -342,7 +343,7 @@ const CampaignDetails = () => {
       console.error("Error toggling pause:", err);
       toast({
         title: "Error",
-        description: err.message,
+        description: parseEthersError(err.message),
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -559,7 +560,7 @@ const CampaignDetails = () => {
         )}
 
         <Text fontWeight="bold">Description</Text>
-        <Text>{campaign.description}</Text>
+        <Text whiteSpace="pre-wrap">{campaign.description}</Text>
 
         <Box>
           <Text fontWeight="bold">Status: {displayStatus}</Text>
