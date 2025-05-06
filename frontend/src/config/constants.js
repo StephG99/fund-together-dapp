@@ -1,7 +1,8 @@
 // src/config/constants.js
 
 export const FACTORY_CONTRACT_ADDRESS =
-  "0xA6886D15b04a4025839c39Edd4c8bEe7A6F3E4AD"; // Your deployed address
+  "0x5c839509e7faaBb4E1e22A50497a39f060386D0e";
+//"0xA6886D15b04a4025839c39Edd4c8bEe7A6F3E4AD"; // Your deployed address
 
 export const FACTORY_CONTRACT_ABI = [
   { type: "constructor", inputs: [], stateMutability: "nonpayable" },
